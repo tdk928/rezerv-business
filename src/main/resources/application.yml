@@ -1,0 +1,19 @@
+spring:
+  application:
+    name: rezerv-business
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+
+logging:
+  pattern:
+    level: "%5p [${spring.application.name}]"
