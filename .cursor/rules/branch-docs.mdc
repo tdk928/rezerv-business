@@ -1,0 +1,23 @@
+---
+description: Git workflow и задължителна branch документация за rezerv-business
+alwaysApply: true
+---
+
+# Git workflow + branch документация
+
+## Workflow
+`feature/* → development → test → master(main)`. Feature branches се правят от
+`development` с описателно име (`feature/company-onboarding`).
+
+## Задължително ПРЕДИ merge на всеки branch
+1. Създай/обнови `docs/branches/<branch-name>.md` със секции: **Цел**, **Направено**,
+   **Решения** (защо така), **Как се тества**.
+2. Добави ред НАЙ-ОТГОРЕ в таблицата на `docs/PROJECT_LOG.md`:
+   `| <пореден №> | <branch-name> | <дата> | <1-2 изречения обобщение> |`
+   Номерата са последователни (1, 2, 3, ...).
+
+## Защо
+`docs/PROJECT_LOG.md` е паметта на repo-то: при нов branch първо го прочети, за да
+знаеш какво е правено до момента. Той служи и на frontend-а като справка какво има
+на backend-а. Пиши обобщенията така, че фронтенд разработчик да разбере какви
+ендпойнти/модели са налични, без да чете кода.

@@ -1,0 +1,38 @@
+---
+description: Java/Spring конвенции за rezerv-business — задължителни при всяка промяна
+alwaysApply: true
+---
+
+# rezerv-business — Java конвенции
+
+Този сервиз е част от платформата REZERV. Пълната архитектура е в
+`/Users/teodorkalev/Desktop/rezerv/REZERV.md` (single source of truth) — чети го при нужда
+от контекст за други сервизи, договори между тях, роли, бази.
+
+## Scope на сервиза
+Порт **8082**. Отговорност: фирми (ЕИК + контролна сума), салони, услуги + категории,
+служители, работно време, снимки, номенклатури (градове, категории), публично търсене.
+База: PostgreSQL `business_db` (порт 5433). Пътища през gateway: `/api/business/**`
+(gateway маха `/api`), `/internal/**` — само service-to-service.
+
+## Твърди правила
+1. **НЕ създавай ендпойнти, които не са изрично поискани.** Ако задачата е "create user",
+   НЕ добавяй автоматично get/update/delete/list. Само точно поисканото.
+2. **Records за всичко освен JPA entities**: DTO-та, request/response, команди, query
+   резултати, `@ConfigurationProperties`. **Lombok САМО за JPA entities**:
+   `@Getter @Setter @Builder @NoArgsConstructor(access = PROTECTED) @AllArgsConstructor(access = PRIVATE)`.
+   Никога `@Data` върху entity.
+3. **Само модерни неща, без legacy**: Java 21+ (records, sealed interfaces, pattern
+   matching, switch expressions), Spring Boot 3.x, virtual threads
+   (`spring.threads.virtual.enabled=true`), Jakarta (не javax), `RestClient` (не
+   RestTemplate), constructor injection (не @Autowired на поле), java.time (не Date).
+4. Слоеве: `web` → `service` → `repository` + `domain`. Контролерите връщат само
+   records, никога entities.
+5. Flyway миграции в `db/migration`, `V<N>__описание.sql`. Приложена миграция НЕ се редактира.
+6. Jakarta Validation върху request records; единен `@RestControllerAdvice` връщащ
+   ErrorResponse: `{ status, code, message, correlationId, timestamp }`.
+7. Константи за header имена (`X-User-Id`, `X-User-Roles`, `X-Company-Id`,
+   `X-Correlation-Id`); SLF4J с параметри (`log.info("... {}", x)`).
+8. **Всеки branch завършва с unit тестове** (JUnit 5 + Mockito) за новата логика.
+   `mvn -q compile` (и тестовете) преди commit.
+9. Вътрешните сервизи вярват на context headers от gateway — без повторна JWT валидация.
