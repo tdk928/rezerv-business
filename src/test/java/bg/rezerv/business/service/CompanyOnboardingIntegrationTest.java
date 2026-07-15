@@ -3,6 +3,7 @@ package bg.rezerv.business.service;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import bg.rezerv.business.TestcontainersConfiguration;
+import bg.rezerv.business.client.CasClient;
 import bg.rezerv.business.domain.CompanyStatus;
 import bg.rezerv.business.repository.CityRepository;
 import bg.rezerv.business.repository.CompanyRepository;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
@@ -35,6 +37,9 @@ class CompanyOnboardingIntegrationTest {
     private CityRepository cityRepository;
     @Autowired
     private ServiceCategoryRepository serviceCategoryRepository;
+
+    @MockitoBean
+    private CasClient casClient;
 
     @Test
     void fullOnboardingFlowCreatesCompanySalonServiceAndPhoto() {
