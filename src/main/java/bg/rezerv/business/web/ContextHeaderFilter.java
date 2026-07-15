@@ -31,6 +31,7 @@ public class ContextHeaderFilter extends OncePerRequestFilter {
             if (userId != null) {
                 MDC.put(MDC_USER_ID, userId);
             }
+            request.setAttribute(RequestContext.ATTRIBUTE, RequestContext.from(request));
             response.setHeader(ContextHeaders.CORRELATION_ID, correlationId);
             filterChain.doFilter(request, response);
         } finally {
