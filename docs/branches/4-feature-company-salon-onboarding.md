@@ -25,8 +25,8 @@ B2B onboarding slice 1: създаване на фирма, салон, услу
 - **Flyway V3 не е нужна** — V2 schema покрива всички полета.
 - Onboarding позволява всеки **authenticated** user без фирма (обикновено CLIENT след register).
   Роля `BUSINESS_OWNER` + `companyId` в JWT **не се задават тук** — виж договора по-долу.
-- Demo seed EIK `204815936` има невалидна контролна сума (само dev данни); API-то го отхвърля
-  при нов onboarding.
+- Demo seed EIK `204815936` (V2) имаше невалидна контролна сума — **`V3__fix_demo_company_eik.sql`**
+  го коригира на `100000001` (валиден dev EIK).
 - Gateway routing вече покрива `/api/business/**` (JWT) vs `/api/business/public/**` — без промяна.
 
 ## Договор с rezerv-cas (следващ branch — НЕ е имплементирано тук)

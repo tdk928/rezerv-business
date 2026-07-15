@@ -12,17 +12,12 @@ class EikValidatorTest {
     void acceptsValidKnownEiks() {
         assertThat(validator.isValid("131529327")).isTrue();
         assertThat(validator.isValid("175074752")).isTrue();
-    }
-
-    @Test
-    void rejectsDemoSeedEikWithBadChecksum() {
-        // V2 demo seed съдържа 204815936 — невалидна контролна сума (само за dev данни).
-        assertThat(validator.isValid("204815936")).isFalse();
+        assertThat(validator.isValid("100000001")).isTrue();
     }
 
     @Test
     void rejectsInvalidChecksum() {
-        assertThat(validator.isValid("204815935")).isFalse();
+        assertThat(validator.isValid("204815936")).isFalse();
         assertThat(validator.isValid("123456789")).isFalse();
     }
 
