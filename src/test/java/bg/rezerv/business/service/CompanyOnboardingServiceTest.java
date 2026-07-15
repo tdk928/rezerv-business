@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bg.rezerv.business.client.CasClient;
 import bg.rezerv.business.domain.City;
 import bg.rezerv.business.domain.Company;
 import bg.rezerv.business.domain.CompanyStatus;
@@ -49,6 +50,9 @@ class CompanyOnboardingServiceTest {
     @Mock
     private EikValidator eikValidator;
 
+    @Mock
+    private CasClient casClient;
+
     @InjectMocks
     private CompanyOnboardingService service;
 
@@ -71,6 +75,7 @@ class CompanyOnboardingServiceTest {
         assertThat(response.id()).isEqualTo(100L);
         assertThat(response.status()).isEqualTo(CompanyStatus.PENDING_APPROVAL);
         assertThat(response.ownerUserId()).isEqualTo(42L);
+        verify(casClient).assignCompany(42L, 100L);
     }
 
     @Test

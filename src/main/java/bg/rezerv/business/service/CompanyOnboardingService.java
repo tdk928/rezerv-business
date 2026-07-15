@@ -1,5 +1,6 @@
 package bg.rezerv.business.service;
 
+import bg.rezerv.business.client.CasClient;
 import bg.rezerv.business.domain.Company;
 import bg.rezerv.business.domain.CompanyStatus;
 import bg.rezerv.business.domain.Salon;
@@ -36,6 +37,7 @@ public class CompanyOnboardingService {
     private final CityRepository cityRepository;
     private final ServiceCategoryRepository serviceCategoryRepository;
     private final EikValidator eikValidator;
+    private final CasClient casClient;
 
     public CompanyOnboardingService(CompanyRepository companyRepository,
                                     SalonRepository salonRepository,
@@ -43,7 +45,8 @@ public class CompanyOnboardingService {
                                     SalonPhotoRepository salonPhotoRepository,
                                     CityRepository cityRepository,
                                     ServiceCategoryRepository serviceCategoryRepository,
-                                    EikValidator eikValidator) {
+                                    EikValidator eikValidator,
+                                    CasClient casClient) {
         this.companyRepository = companyRepository;
         this.salonRepository = salonRepository;
         this.salonServiceItemRepository = salonServiceItemRepository;
@@ -51,6 +54,7 @@ public class CompanyOnboardingService {
         this.cityRepository = cityRepository;
         this.serviceCategoryRepository = serviceCategoryRepository;
         this.eikValidator = eikValidator;
+        this.casClient = casClient;
     }
 
     @Transactional
@@ -74,7 +78,9 @@ public class CompanyOnboardingService {
                 .ownerUserId(ctx.userId())
                 .status(CompanyStatus.PENDING_APPROVAL)
                 .build();
-        return CompanyResponse.from(companyRepository.save(company));
+        company = companyRepository.save(company);
+        casClient.assignCompany(ctx.userId(), company.getId());
+        return CompanyResponse.from(company);
     }
 
     @Transactional
