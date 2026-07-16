@@ -24,7 +24,7 @@ class EikValidatorTest {
     @Test
     void rejectsWrongLength() {
         assertThat(validator.isValid("12345")).isFalse();
-        assertThat(validator.isValid("12345678901234")).isFalse();
+        assertThat(validator.isValid("1234567890123")).isFalse();
         assertThat(validator.isValid(null)).isFalse();
     }
 }

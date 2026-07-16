@@ -60,7 +60,6 @@ class CompanyOnboardingServiceTest {
 
     @Test
     void registerCompanyPersistsPendingApprovalCompany() {
-        when(companyRepository.existsByOwnerUserId(42L)).thenReturn(false);
         when(eikValidator.isValid("204815936")).thenReturn(true);
         when(companyRepository.existsByEik("204815936")).thenReturn(false);
         when(companyRepository.save(any())).thenAnswer(inv -> {
@@ -79,14 +78,20 @@ class CompanyOnboardingServiceTest {
     }
 
     @Test
-    void registerCompanyRejectsDuplicateOwner() {
-        when(companyRepository.existsByOwnerUserId(42L)).thenReturn(true);
+    void registerCompanyAllowsSecondCompanyForSameOwner() {
+        when(eikValidator.isValid("131529327")).thenReturn(true);
+        when(companyRepository.existsByEik("131529327")).thenReturn(false);
+        when(companyRepository.save(any())).thenAnswer(inv -> {
+            Company c = inv.getArgument(0);
+            c.setId(200L);
+            return c;
+        });
 
-        assertThatThrownBy(() -> service.registerCompany(owner, new CreateCompanyRequest(
-                "204815936", "A", "A")))
-                .isInstanceOf(ApiException.class)
-                .hasMessageContaining("фирма");
-        verify(companyRepository, never()).save(any());
+        var response = service.registerCompany(owner, new CreateCompanyRequest(
+                "131529327", "Втора ООД", "Second EOOD"));
+
+        assertThat(response.id()).isEqualTo(200L);
+        verify(casClient).assignCompany(42L, 200L);
     }
 
     @Test
@@ -94,7 +99,7 @@ class CompanyOnboardingServiceTest {
         when(companyRepository.findByIdAndOwnerUserId(1L, 42L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createSalon(owner, 1L, new CreateSalonRequest(
-                "Salon", null, 1L, "addr", null, null, null)))
+                "Salon", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888")))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("права");
     }

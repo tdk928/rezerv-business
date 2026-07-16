@@ -5,6 +5,8 @@ import bg.rezerv.business.web.dto.CompanyResponse;
 import bg.rezerv.business.web.dto.CreateCompanyRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import java.util.List;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +21,12 @@ public class CompanyController {
 
     public CompanyController(CompanyOnboardingService onboardingService) {
         this.onboardingService = onboardingService;
+    }
+
+    @GetMapping("/mine")
+    public List<CompanyResponse> listMine(HttpServletRequest request) {
+        RequestContext ctx = RequestContext.requireAuthenticated(request);
+        return onboardingService.listMyCompanies(ctx);
     }
 
     @PostMapping

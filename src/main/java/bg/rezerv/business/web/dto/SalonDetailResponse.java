@@ -12,6 +12,7 @@ public record SalonDetailResponse(
         String address,
         Double lat,
         Double lng,
+        String email,
         String phone,
         BigDecimal ratingAvg,
         Integer ratingCount,
