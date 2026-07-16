@@ -70,7 +70,7 @@ class CompanyOnboardingControllerTest {
                         .header(ContextHeaders.USER_ID, "7")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"name":"Salon","cityId":22,"address":"ул. Тест 1"}
+                                {"name":"Salon","cityId":22,"address":"ул. Тест 1","email":"salon@example.bg","phone":"+359888888888"}
                                 """))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.code").value("NOT_COMPANY_OWNER"));

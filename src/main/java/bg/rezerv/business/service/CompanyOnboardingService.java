@@ -23,6 +23,7 @@ import bg.rezerv.business.web.dto.SalonPhotoResponse;
 import bg.rezerv.business.web.dto.SalonResponse;
 import bg.rezerv.business.web.dto.SalonServiceResponse;
 import bg.rezerv.business.web.error.ApiException;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,10 +61,6 @@ public class CompanyOnboardingService {
     @Transactional
     public CompanyResponse registerCompany(RequestContext ctx, CreateCompanyRequest request) {
         requireAuthenticated(ctx);
-        if (companyRepository.existsByOwnerUserId(ctx.userId())) {
-            throw new ApiException(HttpStatus.CONFLICT, "COMPANY_ALREADY_REGISTERED",
-                    "Вече имате регистрирана фирма");
-        }
         if (!eikValidator.isValid(request.eik())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "EIK_INVALID", "Невалиден ЕИК (контролна сума)");
         }
@@ -83,6 +80,14 @@ public class CompanyOnboardingService {
         return CompanyResponse.from(company);
     }
 
+    @Transactional(readOnly = true)
+    public List<CompanyResponse> listMyCompanies(RequestContext ctx) {
+        requireAuthenticated(ctx);
+        return companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(ctx.userId()).stream()
+                .map(CompanyResponse::from)
+                .toList();
+    }
+
     @Transactional
     public SalonResponse createSalon(RequestContext ctx, Long companyId, CreateSalonRequest request) {
         Company company = requireOwnedCompany(ctx, companyId);
@@ -97,7 +102,8 @@ public class CompanyOnboardingService {
                 .address(request.address())
                 .lat(request.lat())
                 .lng(request.lng())
-                .phone(request.phone())
+                .email(request.email().strip().toLowerCase())
+                .phone(request.phone().strip())
                 .status(SalonStatus.ACTIVE)
                 .build();
         return SalonResponse.from(salonRepository.save(salon));

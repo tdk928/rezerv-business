@@ -51,6 +51,10 @@ public class Salon {
 
     private Double lng;
 
+    @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false, length = 30)
     private String phone;
 
     @Enumerated(EnumType.STRING)

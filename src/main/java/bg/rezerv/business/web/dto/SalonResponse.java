@@ -12,6 +12,7 @@ public record SalonResponse(
         String address,
         Double lat,
         Double lng,
+        String email,
         String phone,
         SalonStatus status) {
 
@@ -25,6 +26,7 @@ public record SalonResponse(
                 salon.getAddress(),
                 salon.getLat(),
                 salon.getLng(),
+                salon.getEmail(),
                 salon.getPhone(),
                 salon.getStatus());
     }

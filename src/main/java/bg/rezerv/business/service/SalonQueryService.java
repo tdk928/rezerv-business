@@ -84,6 +84,7 @@ public class SalonQueryService {
                 salon.getAddress(),
                 salon.getLat(),
                 salon.getLng(),
+                salon.getEmail(),
                 salon.getPhone(),
                 salon.getRatingAvg(),
                 salon.getRatingCount(),

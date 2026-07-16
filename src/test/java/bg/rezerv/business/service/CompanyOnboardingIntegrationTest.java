@@ -48,14 +48,15 @@ class CompanyOnboardingIntegrationTest {
         var company = onboardingService.registerCompany(ctx, new CreateCompanyRequest(
                 "175074752", "Нова фирма", "Nova firma EOOD"));
         assertThat(company.status()).isEqualTo(CompanyStatus.PENDING_APPROVAL);
-        assertThat(companyRepository.existsByOwnerUserId(NEW_OWNER_ID)).isTrue();
+        assertThat(companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(NEW_OWNER_ID)).hasSize(1);
 
         Long sofiaId = cityRepository.findAll().stream()
                 .filter(c -> c.getSlug().equals("sofia"))
                 .findFirst().orElseThrow().getId();
 
         var salon = onboardingService.createSalon(ctx, company.id(), new CreateSalonRequest(
-                "Моят салон", "Описание", sofiaId, "ул. Тест 1", 42.69, 23.32, "+359888888888"));
+                "Моят салон", "Описание", sofiaId, "ул. Тест 1", 42.69, 23.32,
+                "salon@example.bg", "+359888888888"));
         assertThat(salon.companyId()).isEqualTo(company.id());
 
         Long categoryId = serviceCategoryRepository.findAllByOrderByNameAsc().getFirst().getId();
