@@ -38,7 +38,7 @@ class CompanyOnboardingControllerTest {
         mockMvc.perform(post("/business/companies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"eik":"204815936","name":"Test","legalName":"Test EOOD"}
+                                {"eik":"204815936","name":"Test","legalName":"Test EOOD","email":"t@test.bg","phone":"+359888"}
                                 """))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
@@ -47,14 +47,15 @@ class CompanyOnboardingControllerTest {
     @Test
     void registerCompanyReturnsCreatedCompany() throws Exception {
         when(onboardingService.registerCompany(any(), any())).thenReturn(new CompanyResponse(
-                10L, "204815936", "Test", "Test EOOD", 7L, CompanyStatus.PENDING_APPROVAL, Instant.parse("2026-07-15T00:00:00Z")));
+                10L, "204815936", "Test", "Test EOOD", "t@test.bg", "+359888", 7L,
+                CompanyStatus.PENDING_APPROVAL, Instant.parse("2026-07-15T00:00:00Z")));
 
         mockMvc.perform(post("/business/companies")
                         .header(ContextHeaders.USER_ID, "7")
                         .header(ContextHeaders.USER_ROLES, "CLIENT")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"eik":"204815936","name":"Test","legalName":"Test EOOD"}
+                                {"eik":"204815936","name":"Test","legalName":"Test EOOD","email":"t@test.bg","phone":"+359888"}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(10))

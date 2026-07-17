@@ -14,7 +14,9 @@ import bg.rezerv.business.repository.SalonRepository;
 import bg.rezerv.business.repository.SalonServiceItemRepository;
 import bg.rezerv.business.repository.ServiceCategoryRepository;
 import bg.rezerv.business.web.RequestContext;
+import bg.rezerv.business.web.dto.AdminCompanyResponse;
 import bg.rezerv.business.web.dto.CompanyResponse;
+import bg.rezerv.business.web.dto.CompanyWithSalonsResponse;
 import bg.rezerv.business.web.dto.CreateCompanyRequest;
 import bg.rezerv.business.web.dto.CreateSalonPhotoRequest;
 import bg.rezerv.business.web.dto.CreateSalonRequest;
@@ -23,13 +25,19 @@ import bg.rezerv.business.web.dto.SalonPhotoResponse;
 import bg.rezerv.business.web.dto.SalonResponse;
 import bg.rezerv.business.web.dto.SalonServiceResponse;
 import bg.rezerv.business.web.error.ApiException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CompanyOnboardingService {
+
+    private static final String ROLE_PLATFORM_ADMIN = "PLATFORM_ADMIN";
 
     private final CompanyRepository companyRepository;
     private final SalonRepository salonRepository;
@@ -72,6 +80,8 @@ public class CompanyOnboardingService {
                 .eik(request.eik())
                 .name(request.name())
                 .legalName(request.legalName())
+                .email(request.email().strip().toLowerCase())
+                .phone(request.phone().strip())
                 .ownerUserId(ctx.userId())
                 .status(CompanyStatus.PENDING_APPROVAL)
                 .build();
@@ -81,11 +91,83 @@ public class CompanyOnboardingService {
     }
 
     @Transactional(readOnly = true)
-    public List<CompanyResponse> listMyCompanies(RequestContext ctx) {
+    public List<CompanyWithSalonsResponse> listMyCompanies(RequestContext ctx) {
         requireAuthenticated(ctx);
-        return companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(ctx.userId()).stream()
-                .map(CompanyResponse::from)
+        List<Company> companies = companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(ctx.userId());
+        if (companies.isEmpty()) {
+            return List.of();
+        }
+        List<Long> companyIds = companies.stream().map(Company::getId).toList();
+        Map<Long, List<Salon>> salonsByCompany = salonRepository.findByCompanyIdInOrderByNameAsc(companyIds)
+                .stream()
+                .collect(Collectors.groupingBy(Salon::getCompanyId, LinkedHashMap::new, Collectors.toList()));
+        return companies.stream()
+                .map(c -> CompanyWithSalonsResponse.from(c, salonsByCompany.getOrDefault(c.getId(), List.of())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminCompanyResponse> listAllCompaniesForAdmin(RequestContext ctx) {
+        requireAuthenticated(ctx);
+        requirePlatformAdmin(ctx);
+        List<Company> companies = companyRepository.findAllByOrderByCreatedAtDesc();
+        if (companies.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ownerIds = companies.stream()
+                .map(Company::getOwnerUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, CasClient.UserSummary> ownersById = casClient.lookupUsers(ownerIds).stream()
+                .collect(Collectors.toMap(CasClient.UserSummary::id, u -> u, (a, b) -> a));
+        return companies.stream()
+                .map(c -> {
+                    CasClient.UserSummary owner = ownersById.get(c.getOwnerUserId());
+                    AdminCompanyResponse.OwnerSummary summary = owner != null
+                            ? AdminCompanyResponse.OwnerSummary.from(owner)
+                            : AdminCompanyResponse.OwnerSummary.unknown(c.getOwnerUserId());
+                    return AdminCompanyResponse.from(c, summary);
+                })
+                .toList();
+    }
+
+    @Transactional
+    public AdminCompanyResponse approveCompany(RequestContext ctx, Long companyId) {
+        requireAuthenticated(ctx);
+        requirePlatformAdmin(ctx);
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "COMPANY_NOT_FOUND",
+                        "Фирмата не е намерена"));
+        if (company.getStatus() == CompanyStatus.APPROVED) {
+            return toAdminResponse(company);
+        }
+        if (company.getStatus() == CompanyStatus.SUSPENDED) {
+            throw new ApiException(HttpStatus.CONFLICT, "COMPANY_SUSPENDED",
+                    "Спряна фирма не може да бъде одобрена директно");
+        }
+        company.setStatus(CompanyStatus.APPROVED);
+        company.touch();
+        companyRepository.save(company);
+
+        List<Salon> salons = salonRepository.findByCompanyId(companyId);
+        for (Salon salon : salons) {
+            if (salon.getStatus() == SalonStatus.INACTIVE) {
+                salon.setStatus(SalonStatus.ACTIVE);
+            }
+        }
+        if (!salons.isEmpty()) {
+            salonRepository.saveAll(salons);
+        }
+        return toAdminResponse(company);
+    }
+
+    private AdminCompanyResponse toAdminResponse(Company company) {
+        List<CasClient.UserSummary> owners = casClient.lookupUsers(List.of(company.getOwnerUserId()));
+        AdminCompanyResponse.OwnerSummary summary = owners.isEmpty()
+                ? AdminCompanyResponse.OwnerSummary.unknown(company.getOwnerUserId())
+                : AdminCompanyResponse.OwnerSummary.from(owners.getFirst());
+        return AdminCompanyResponse.from(company, summary);
     }
 
     @Transactional
@@ -93,6 +175,9 @@ public class CompanyOnboardingService {
         Company company = requireOwnedCompany(ctx, companyId);
         var city = cityRepository.findById(request.cityId())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "CITY_NOT_FOUND", "Градът не е намерен"));
+
+        // Активен обект само при одобрена фирма; иначе INACTIVE (onboarding преди approve).
+        SalonStatus status = resolveSalonStatusForCompany(company);
 
         Salon salon = Salon.builder()
                 .companyId(company.getId())
@@ -104,7 +189,7 @@ public class CompanyOnboardingService {
                 .lng(request.lng())
                 .email(request.email().strip().toLowerCase())
                 .phone(request.phone().strip())
-                .status(SalonStatus.ACTIVE)
+                .status(status)
                 .build();
         return SalonResponse.from(salonRepository.save(salon));
     }
@@ -157,5 +242,19 @@ public class CompanyOnboardingService {
         if (!ctx.isAuthenticated()) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Изисква се автентикация");
         }
+    }
+
+    private static void requirePlatformAdmin(RequestContext ctx) {
+        if (!ctx.hasRole(ROLE_PLATFORM_ADMIN)) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN",
+                    "Изисква се роля PLATFORM_ADMIN");
+        }
+    }
+
+    /** ACTIVE само ако фирмата е APPROVED — иначе няма „активен обект без активна фирма“. */
+    static SalonStatus resolveSalonStatusForCompany(Company company) {
+        return company.getStatus() == CompanyStatus.APPROVED
+                ? SalonStatus.ACTIVE
+                : SalonStatus.INACTIVE;
     }
 }

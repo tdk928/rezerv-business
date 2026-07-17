@@ -2,6 +2,7 @@ package bg.rezerv.business.web;
 
 import bg.rezerv.business.service.CompanyOnboardingService;
 import bg.rezerv.business.web.dto.CompanyResponse;
+import bg.rezerv.business.web.dto.CompanyWithSalonsResponse;
 import bg.rezerv.business.web.dto.CreateCompanyRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -24,7 +25,7 @@ public class CompanyController {
     }
 
     @GetMapping("/mine")
-    public List<CompanyResponse> listMine(HttpServletRequest request) {
+    public List<CompanyWithSalonsResponse> listMine(HttpServletRequest request) {
         RequestContext ctx = RequestContext.requireAuthenticated(request);
         return onboardingService.listMyCompanies(ctx);
     }

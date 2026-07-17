@@ -1,6 +1,8 @@
 package bg.rezerv.business.repository;
 
 import bg.rezerv.business.domain.Salon;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +12,11 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SalonRepository extends JpaRepository<Salon, Long> {
+
+    @EntityGraph(attributePaths = "city")
+    List<Salon> findByCompanyIdInOrderByNameAsc(Collection<Long> companyIds);
+
+    List<Salon> findByCompanyId(Long companyId);
 
     @EntityGraph(attributePaths = "city")
     @Query("""
