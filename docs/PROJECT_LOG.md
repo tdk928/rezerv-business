@@ -5,6 +5,7 @@
 
 | № | Branch | Дата | Обобщение |
 |---|--------|------|-----------|
+| 7 | feature/owner-admin-company-lists | 2026-07-17 | `GET /companies/mine` връща фирми+обекти (`salons`). `GET /admin/companies` (PLATFORM_ADMIN) — всички фирми + owner от CAS lookup. |
 | 6 | feature/multi-company-owner | 2026-07-16 | Multi-company owner: махнато 1-фирма-на-user; `GET /business/companies/mine`. Също: ЕИК само 9 цифри (V4), salon email+phone required (V5). |
 | 5 | feature/cas-company-assignment-integration | 2026-07-15 | След `POST /api/business/companies` business вика CAS `POST /internal/users/{userId}/assign-company` (RestClient). При CAS failure → 502 + rollback. Config `rezerv.cas.base-url`. Unit + integration тестове с mock CasClient. |
 | 4 | feature/company-salon-onboarding | 2026-07-15 | B2B onboarding slice 1: POST `/api/business/companies` (ЕИК + checksum, PENDING_APPROVAL), POST `.../companies/{id}/salons`, POST `.../salons/{id}/services`, POST `.../salons/{id}/photos`. Auth от gateway headers + owner check. Flyway V3 fix demo EIK. Unit + WebMvc + integration тестове. |

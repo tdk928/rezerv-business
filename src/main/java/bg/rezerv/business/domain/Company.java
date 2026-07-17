@@ -38,6 +38,12 @@ public class Company {
     @Column(name = "legal_name", nullable = false)
     private String legalName;
 
+    @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
+    private String phone;
+
     @Column(name = "owner_user_id", nullable = false)
     private Long ownerUserId;
 
@@ -49,4 +55,12 @@ public class Company {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private Instant createdAt = Instant.now();
+
+    @Column(name = "updated_at", nullable = false)
+    @Builder.Default
+    private Instant updatedAt = Instant.now();
+
+    public void touch() {
+        this.updatedAt = Instant.now();
+    }
 }

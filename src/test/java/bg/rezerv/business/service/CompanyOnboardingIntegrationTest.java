@@ -46,7 +46,7 @@ class CompanyOnboardingIntegrationTest {
         RequestContext ctx = new RequestContext(NEW_OWNER_ID, List.of("CLIENT"), null);
 
         var company = onboardingService.registerCompany(ctx, new CreateCompanyRequest(
-                "175074752", "Нова фирма", "Nova firma EOOD"));
+                "175074752", "Нова фирма", "Nova firma EOOD", "nova@firma.bg", "+359888000111"));
         assertThat(company.status()).isEqualTo(CompanyStatus.PENDING_APPROVAL);
         assertThat(companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(NEW_OWNER_ID)).hasSize(1);
 

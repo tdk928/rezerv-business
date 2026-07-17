@@ -12,4 +12,6 @@ public interface CompanyRepository extends JpaRepository<Company, Long> {
     List<Company> findByOwnerUserIdOrderByCreatedAtAsc(Long ownerUserId);
 
     Optional<Company> findByIdAndOwnerUserId(Long id, Long ownerUserId);
+
+    List<Company> findAllByOrderByCreatedAtDesc();
 }

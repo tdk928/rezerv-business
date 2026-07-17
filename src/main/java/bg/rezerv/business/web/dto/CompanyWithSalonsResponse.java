@@ -2,9 +2,12 @@ package bg.rezerv.business.web.dto;
 
 import bg.rezerv.business.domain.Company;
 import bg.rezerv.business.domain.CompanyStatus;
+import bg.rezerv.business.domain.Salon;
 import java.time.Instant;
+import java.util.List;
 
-public record CompanyResponse(
+/** Фирма на текущия owner + нейните обекти (салони). */
+public record CompanyWithSalonsResponse(
         Long id,
         String eik,
         String name,
@@ -13,10 +16,11 @@ public record CompanyResponse(
         String phone,
         Long ownerUserId,
         CompanyStatus status,
-        Instant createdAt) {
+        Instant createdAt,
+        List<SalonResponse> salons) {
 
-    public static CompanyResponse from(Company company) {
-        return new CompanyResponse(
+    public static CompanyWithSalonsResponse from(Company company, List<Salon> salons) {
+        return new CompanyWithSalonsResponse(
                 company.getId(),
                 company.getEik(),
                 company.getName(),
@@ -25,6 +29,7 @@ public record CompanyResponse(
                 company.getPhone(),
                 company.getOwnerUserId(),
                 company.getStatus(),
-                company.getCreatedAt());
+                company.getCreatedAt(),
+                salons.stream().map(SalonResponse::from).toList());
     }
 }
