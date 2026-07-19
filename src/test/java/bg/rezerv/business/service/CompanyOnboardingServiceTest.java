@@ -11,6 +11,7 @@ import bg.rezerv.business.client.CasClient;
 import bg.rezerv.business.domain.City;
 import bg.rezerv.business.domain.Company;
 import bg.rezerv.business.domain.CompanyStatus;
+import bg.rezerv.business.domain.SalonServiceItem;
 import bg.rezerv.business.domain.ServiceCategory;
 import bg.rezerv.business.repository.CityRepository;
 import bg.rezerv.business.repository.CompanyRepository;
@@ -142,12 +143,15 @@ class CompanyOnboardingServiceTest {
                 .build();
         when(companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(42L)).thenReturn(List.of(company));
         when(salonRepository.findByCompanyIdInOrderByNameAsc(List.of(10L))).thenReturn(List.of(salon));
+        when(salonServiceItemRepository.findBySalonIdInAndActiveTrueOrderByNameAsc(List.of(3L)))
+                .thenReturn(List.of());
 
         var result = service.listMyCompanies(owner);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().salons()).hasSize(1);
         assertThat(result.getFirst().salons().getFirst().name()).isEqualTo("Обект 1");
+        assertThat(result.getFirst().salons().getFirst().services()).isEmpty();
     }
 
     @Test
@@ -170,6 +174,34 @@ class CompanyOnboardingServiceTest {
                 "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888")))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("одобрена");
+    }
+
+    @Test
+    void removeServiceDeactivatesOwnedService() {
+        Company company = Company.builder().id(1L).ownerUserId(42L).status(CompanyStatus.APPROVED).build();
+        City city = City.builder().id(1L).name("София").slug("sofia").build();
+        when(salonRepository.findWithCityById(5L)).thenReturn(Optional.of(
+                bg.rezerv.business.domain.Salon.builder()
+                        .id(5L).companyId(1L).city(city).name("S").address("a")
+                        .email("a@b.bg").phone("+359").build()));
+        when(companyRepository.findByIdAndOwnerUserId(1L, 42L)).thenReturn(Optional.of(company));
+        ServiceCategory category = ServiceCategory.builder().id(1L).name("Масаж").slug("masazh").build();
+        SalonServiceItem item = SalonServiceItem.builder()
+                .id(9L)
+                .salonId(5L)
+                .category(category)
+                .name("Масаж")
+                .durationMin(60)
+                .price(BigDecimal.TEN)
+                .active(true)
+                .build();
+        when(salonServiceItemRepository.findByIdAndSalonId(9L, 5L)).thenReturn(Optional.of(item));
+        when(salonServiceItemRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        service.removeService(owner, 5L, 9L);
+
+        assertThat(item.getActive()).isFalse();
+        verify(salonServiceItemRepository).save(item);
     }
 
     @Test

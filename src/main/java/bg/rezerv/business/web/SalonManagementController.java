@@ -9,10 +9,13 @@ import bg.rezerv.business.web.dto.SalonResponse;
 import bg.rezerv.business.web.dto.SalonServiceResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -39,6 +42,15 @@ public class SalonManagementController {
                                            @Valid @RequestBody CreateSalonServiceRequest body) {
         RequestContext ctx = RequestContext.requireAuthenticated(request);
         return onboardingService.addService(ctx, salonId, body);
+    }
+
+    @DeleteMapping("/salons/{salonId}/services/{serviceId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeService(HttpServletRequest request,
+                              @PathVariable Long salonId,
+                              @PathVariable Long serviceId) {
+        RequestContext ctx = RequestContext.requireAuthenticated(request);
+        onboardingService.removeService(ctx, salonId, serviceId);
     }
 
     @PostMapping("/salons/{salonId}/photos")
