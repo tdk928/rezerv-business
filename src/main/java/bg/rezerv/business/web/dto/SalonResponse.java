@@ -1,7 +1,9 @@
 package bg.rezerv.business.web.dto;
 
 import bg.rezerv.business.domain.Salon;
+import bg.rezerv.business.domain.SalonServiceItem;
 import bg.rezerv.business.domain.SalonStatus;
+import java.util.List;
 
 public record SalonResponse(
         Long id,
@@ -14,9 +16,14 @@ public record SalonResponse(
         Double lng,
         String email,
         String phone,
-        SalonStatus status) {
+        SalonStatus status,
+        List<SalonServiceResponse> services) {
 
     public static SalonResponse from(Salon salon) {
+        return from(salon, List.of());
+    }
+
+    public static SalonResponse from(Salon salon, List<SalonServiceItem> services) {
         return new SalonResponse(
                 salon.getId(),
                 salon.getCompanyId(),
@@ -28,6 +35,7 @@ public record SalonResponse(
                 salon.getLng(),
                 salon.getEmail(),
                 salon.getPhone(),
-                salon.getStatus());
+                salon.getStatus(),
+                services.stream().map(SalonServiceResponse::from).toList());
     }
 }

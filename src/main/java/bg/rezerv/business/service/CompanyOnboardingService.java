@@ -98,11 +98,17 @@ public class CompanyOnboardingService {
             return List.of();
         }
         List<Long> companyIds = companies.stream().map(Company::getId).toList();
-        Map<Long, List<Salon>> salonsByCompany = salonRepository.findByCompanyIdInOrderByNameAsc(companyIds)
-                .stream()
+        List<Salon> salons = salonRepository.findByCompanyIdInOrderByNameAsc(companyIds);
+        Map<Long, List<Salon>> salonsByCompany = salons.stream()
                 .collect(Collectors.groupingBy(Salon::getCompanyId, LinkedHashMap::new, Collectors.toList()));
+        List<Long> salonIds = salons.stream().map(Salon::getId).toList();
+        Map<Long, List<SalonServiceItem>> servicesBySalon = salonIds.isEmpty()
+                ? Map.of()
+                : salonServiceItemRepository.findBySalonIdInAndActiveTrueOrderByNameAsc(salonIds).stream()
+                        .collect(Collectors.groupingBy(SalonServiceItem::getSalonId, LinkedHashMap::new, Collectors.toList()));
         return companies.stream()
-                .map(c -> CompanyWithSalonsResponse.from(c, salonsByCompany.getOrDefault(c.getId(), List.of())))
+                .map(c -> CompanyWithSalonsResponse.from(
+                        c, salonsByCompany.getOrDefault(c.getId(), List.of()), servicesBySalon))
                 .toList();
     }
 
@@ -213,6 +219,19 @@ public class CompanyOnboardingService {
                 .active(true)
                 .build();
         return SalonServiceResponse.from(salonServiceItemRepository.save(item));
+    }
+
+    @Transactional
+    public void removeService(RequestContext ctx, Long salonId, Long serviceId) {
+        requireOwnedSalon(ctx, salonId);
+        SalonServiceItem item = salonServiceItemRepository.findByIdAndSalonId(serviceId, salonId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "SERVICE_NOT_FOUND",
+                        "Услугата не е намерена"));
+        if (Boolean.FALSE.equals(item.getActive())) {
+            return;
+        }
+        item.setActive(false);
+        salonServiceItemRepository.save(item);
     }
 
     @Transactional
