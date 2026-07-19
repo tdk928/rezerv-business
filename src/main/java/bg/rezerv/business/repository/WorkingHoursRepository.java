@@ -15,5 +15,7 @@ public interface WorkingHoursRepository extends JpaRepository<WorkingHours, Long
 
     List<WorkingHours> findBySalonIdAndStaffIdOrderByDayOfWeekAsc(Long salonId, Long staffId);
 
+    List<WorkingHours> findBySalonIdAndStaffIdIsNotNullOrderByStaffIdAscDayOfWeekAsc(Long salonId);
+
     void deleteBySalonIdAndStaffId(Long salonId, Long staffId);
 }

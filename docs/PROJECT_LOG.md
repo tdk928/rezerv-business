@@ -5,6 +5,7 @@
 
 | № | Branch | Дата | Обобщение |
 |---|--------|------|-----------|
+| 12 | feature/internal-availability | 2026-07-19 | Internal за booking: `GET .../availability-context` + `.../actors/{userId}` (owner/staff). |
 | 11 | feature/staff-schedules-time-off | 2026-07-19 | Staff (CAS STAFF), график ⊆ салон, staff↔services, salon closures, time-off (owner + staff заявки approve/reject). V9. |
 | 10 | feature/salon-working-hours | 2026-07-19 | Задължителни `workingHours` при create salon (по ден, open/close); `PUT .../working-hours`; V8 wipe+reseed; mine връща часовете. |
 | 9 | feature/mine-salons-with-services | 2026-07-19 | `GET /companies/mine` — всеки салон включва `services[]` (категория, име, duration, price). |
