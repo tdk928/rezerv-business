@@ -5,6 +5,7 @@
 
 | № | Branch | Дата | Обобщение |
 |---|--------|------|-----------|
+| 13 | feature/create-staff-onboarding | 2026-07-19 | Owner създава нов STAFF: `POST /business/salons/{id}/staff/create` (CAS create-staff + staff_members). Link-by-email остава. |
 | 12 | feature/internal-availability | 2026-07-19 | Internal за booking: `GET .../availability-context` + `.../actors/{userId}` (owner/staff). |
 | 11 | feature/staff-schedules-time-off | 2026-07-19 | Staff (CAS STAFF), график ⊆ салон, staff↔services, salon closures, time-off (owner + staff заявки approve/reject). V9. |
 | 10 | feature/salon-working-hours | 2026-07-19 | Задължителни `workingHours` при create salon (по ден, open/close); `PUT .../working-hours`; V8 wipe+reseed; mine връща часовете. |

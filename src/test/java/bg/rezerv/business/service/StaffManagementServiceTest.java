@@ -26,6 +26,7 @@ import bg.rezerv.business.repository.TimeOffRequestRepository;
 import bg.rezerv.business.repository.WorkingHoursRepository;
 import bg.rezerv.business.web.RequestContext;
 import bg.rezerv.business.web.dto.AddStaffRequest;
+import bg.rezerv.business.web.dto.CreateStaffRequest;
 import bg.rezerv.business.web.dto.CreateTimeOffRequest;
 import bg.rezerv.business.web.error.ApiException;
 import java.time.Instant;
@@ -80,6 +81,33 @@ class StaffManagementServiceTest {
         assertThat(response.userId()).isEqualTo(9L);
         assertThat(response.displayName()).isEqualTo("Мария Петрова");
         verify(casClient).assignStaff(9L, 1L);
+    }
+
+    @Test
+    void createStaffProvisionsCasUserAndPersists() {
+        Salon salon = Salon.builder().id(5L).companyId(1L).city(sofia).name("S").address("a").build();
+        when(salonRepository.findWithCityById(5L)).thenReturn(Optional.of(salon));
+        when(companyRepository.findByIdAndOwnerUserId(1L, 42L))
+                .thenReturn(Optional.of(Company.builder().id(1L).ownerUserId(42L).build()));
+        when(casClient.createStaffUser(
+                eq("new@example.bg"), eq("parola123"), eq("Иван"), eq("Иванов"),
+                eq("+359888123456"), eq(1L)))
+                .thenReturn(new CasClient.UserSummary(11L, "new@example.bg", "Иван", "Иванов"));
+        when(staffMemberRepository.existsBySalonIdAndUserId(5L, 11L)).thenReturn(false);
+        when(staffMemberRepository.save(any())).thenAnswer(inv -> {
+            StaffMember s = inv.getArgument(0);
+            s.setId(88L);
+            return s;
+        });
+        when(staffServiceLinkRepository.findByStaffId(88L)).thenReturn(List.of());
+        when(workingHoursRepository.findBySalonIdAndStaffIdOrderByDayOfWeekAsc(5L, 88L)).thenReturn(List.of());
+
+        var response = service.createStaff(owner, 5L, new CreateStaffRequest(
+                "new@example.bg", "parola123", "Иван", "Иванов", "+359888123456", null, "Гримьор"));
+
+        assertThat(response.id()).isEqualTo(88L);
+        assertThat(response.displayName()).isEqualTo("Иван Иванов");
+        assertThat(response.title()).isEqualTo("Гримьор");
     }
 
     @Test
