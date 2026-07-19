@@ -50,6 +50,9 @@ class CompanyOnboardingIntegrationTest {
         assertThat(company.status()).isEqualTo(CompanyStatus.PENDING_APPROVAL);
         assertThat(companyRepository.findByOwnerUserIdOrderByCreatedAtAsc(NEW_OWNER_ID)).hasSize(1);
 
+        RequestContext admin = new RequestContext(1L, List.of("PLATFORM_ADMIN"), null);
+        onboardingService.approveCompany(admin, company.id());
+
         Long sofiaId = cityRepository.findAll().stream()
                 .filter(c -> c.getSlug().equals("sofia"))
                 .findFirst().orElseThrow().getId();
@@ -58,6 +61,7 @@ class CompanyOnboardingIntegrationTest {
                 "Моят салон", "Описание", sofiaId, "ул. Тест 1", 42.69, 23.32,
                 "salon@example.bg", "+359888888888"));
         assertThat(salon.companyId()).isEqualTo(company.id());
+        assertThat(salon.status()).isEqualTo(bg.rezerv.business.domain.SalonStatus.ACTIVE);
 
         Long categoryId = serviceCategoryRepository.findAllByOrderByNameAsc().getFirst().getId();
         var service = onboardingService.addService(ctx, salon.id(), new CreateSalonServiceRequest(

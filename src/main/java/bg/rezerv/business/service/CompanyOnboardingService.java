@@ -173,10 +173,13 @@ public class CompanyOnboardingService {
     @Transactional
     public SalonResponse createSalon(RequestContext ctx, Long companyId, CreateSalonRequest request) {
         Company company = requireOwnedCompany(ctx, companyId);
+        if (company.getStatus() != CompanyStatus.APPROVED) {
+            throw new ApiException(HttpStatus.CONFLICT, "COMPANY_NOT_APPROVED",
+                    "Обект може да се добави само към одобрена фирма");
+        }
         var city = cityRepository.findById(request.cityId())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "CITY_NOT_FOUND", "Градът не е намерен"));
 
-        // Активен обект само при одобрена фирма; иначе INACTIVE (onboarding преди approve).
         SalonStatus status = resolveSalonStatusForCompany(company);
 
         Salon salon = Salon.builder()

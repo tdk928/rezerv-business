@@ -158,25 +158,18 @@ class CompanyOnboardingServiceTest {
     }
 
     @Test
-    void createSalonIsInactiveWhenCompanyPendingApproval() {
+    void createSalonRejectsWhenCompanyNotApproved() {
         Company company = Company.builder()
                 .id(1L)
                 .ownerUserId(42L)
                 .status(CompanyStatus.PENDING_APPROVAL)
                 .build();
-        City city = City.builder().id(1L).name("София").slug("sofia").build();
         when(companyRepository.findByIdAndOwnerUserId(1L, 42L)).thenReturn(Optional.of(company));
-        when(cityRepository.findById(1L)).thenReturn(Optional.of(city));
-        when(salonRepository.save(any())).thenAnswer(inv -> {
-            bg.rezerv.business.domain.Salon s = inv.getArgument(0);
-            s.setId(9L);
-            return s;
-        });
 
-        var response = service.createSalon(owner, 1L, new CreateSalonRequest(
-                "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888"));
-
-        assertThat(response.status()).isEqualTo(bg.rezerv.business.domain.SalonStatus.INACTIVE);
+        assertThatThrownBy(() -> service.createSalon(owner, 1L, new CreateSalonRequest(
+                "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888")))
+                .isInstanceOf(ApiException.class)
+                .hasMessageContaining("одобрена");
     }
 
     @Test

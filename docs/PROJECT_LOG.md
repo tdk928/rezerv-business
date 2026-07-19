@@ -5,6 +5,7 @@
 
 | № | Branch | Дата | Обобщение |
 |---|--------|------|-----------|
+| 8 | feature/salon-requires-company-approved | 2026-07-19 | `POST .../salons` само ако фирмата е APPROVED; иначе 409 COMPANY_NOT_APPROVED. |
 | 7 | feature/owner-admin-company-lists | 2026-07-17 | `GET /companies/mine` връща фирми+обекти (`salons`). `GET /admin/companies` (PLATFORM_ADMIN) — всички фирми + owner от CAS lookup. |
 | 6 | feature/multi-company-owner | 2026-07-16 | Multi-company owner: махнато 1-фирма-на-user; `GET /business/companies/mine`. Също: ЕИК само 9 цифри (V4), salon email+phone required (V5). |
 | 5 | feature/cas-company-assignment-integration | 2026-07-15 | След `POST /api/business/companies` business вика CAS `POST /internal/users/{userId}/assign-company` (RestClient). При CAS failure → 502 + rollback. Config `rezerv.cas.base-url`. Unit + integration тестове с mock CasClient. |
