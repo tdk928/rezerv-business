@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 /** Service-to-service клиент към rezerv-cas (/internal/**). */
 @Component
@@ -60,6 +61,50 @@ public class CasClient {
             log.error("CAS user lookup failed for {} ids", userIds.size(), ex);
             throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_LOOKUP_FAILED",
                     "Неуспешно зареждане на собствениците");
+        }
+    }
+
+    public UserSummary findByEmail(String email) {
+        try {
+            UserSummary user = restClient.get()
+                    .uri(uriBuilder -> uriBuilder.path("/internal/users/by-email")
+                            .queryParam("email", email)
+                            .build())
+                    .retrieve()
+                    .body(UserSummary.class);
+            if (user == null || user.id() == null) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND",
+                        "Потребител с този email не е намерен");
+            }
+            return user;
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 404) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND",
+                        "Потребител с този email не е намерен");
+            }
+            log.error("CAS findByEmail failed email={}", email, ex);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_LOOKUP_FAILED",
+                    "Неуспешно търсене на потребител по email");
+        } catch (RestClientException ex) {
+            log.error("CAS findByEmail failed email={}", email, ex);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_LOOKUP_FAILED",
+                    "Неуспешно търсене на потребител по email");
+        }
+    }
+
+    /** Добавя STAFF роля + company membership в CAS. */
+    public void assignStaff(Long userId, Long companyId) {
+        try {
+            restClient.post()
+                    .uri("/internal/users/{userId}/assign-staff", userId)
+                    .body(new AssignCompanyBody(companyId))
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("CAS assign-staff ok userId={} companyId={}", userId, companyId);
+        } catch (RestClientException ex) {
+            log.error("CAS assign-staff failed userId={} companyId={}", userId, companyId, ex);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_ASSIGN_FAILED",
+                    "Неуспешно свързване на служителя с акаунта");
         }
     }
 
