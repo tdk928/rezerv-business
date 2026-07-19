@@ -92,6 +92,40 @@ public class CasClient {
         }
     }
 
+    /** Създава нов CAS user с STAFF + company membership. */
+    public UserSummary createStaffUser(String email,
+                                       String password,
+                                       String firstName,
+                                       String lastName,
+                                       String phone,
+                                       Long companyId) {
+        try {
+            UserSummary user = restClient.post()
+                    .uri("/internal/users/create-staff")
+                    .body(new CreateStaffBody(email, password, firstName, lastName, phone, companyId))
+                    .retrieve()
+                    .body(UserSummary.class);
+            if (user == null || user.id() == null) {
+                throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_CREATE_FAILED",
+                        "Неуспешно създаване на служителски акаунт");
+            }
+            log.info("CAS create-staff ok userId={} companyId={}", user.id(), companyId);
+            return user;
+        } catch (RestClientResponseException ex) {
+            if (ex.getStatusCode().value() == 409) {
+                throw new ApiException(HttpStatus.CONFLICT, "EMAIL_ALREADY_EXISTS",
+                        "Потребител с този email вече съществува");
+            }
+            log.error("CAS create-staff failed email={}", email, ex);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_CREATE_FAILED",
+                    "Неуспешно създаване на служителски акаунт");
+        } catch (RestClientException ex) {
+            log.error("CAS create-staff failed email={}", email, ex);
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "CAS_CREATE_FAILED",
+                    "Неуспешно създаване на служителски акаунт");
+        }
+    }
+
     /** Добавя STAFF роля + company membership в CAS. */
     public void assignStaff(Long userId, Long companyId) {
         try {
@@ -112,6 +146,15 @@ public class CasClient {
     }
 
     private record AssignCompanyBody(Long companyId) {
+    }
+
+    private record CreateStaffBody(
+            String email,
+            String password,
+            String firstName,
+            String lastName,
+            String phone,
+            Long companyId) {
     }
 
     private record LookupBody(List<Long> ids) {

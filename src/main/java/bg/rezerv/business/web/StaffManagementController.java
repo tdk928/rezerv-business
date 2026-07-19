@@ -2,6 +2,7 @@ package bg.rezerv.business.web;
 
 import bg.rezerv.business.service.StaffManagementService;
 import bg.rezerv.business.web.dto.AddStaffRequest;
+import bg.rezerv.business.web.dto.CreateStaffRequest;
 import bg.rezerv.business.web.dto.CreateSalonClosureRequest;
 import bg.rezerv.business.web.dto.CreateTimeOffRequest;
 import bg.rezerv.business.web.dto.ReplaceSalonWorkingHoursRequest;
@@ -43,6 +44,13 @@ public class StaffManagementController {
                                         @PathVariable Long salonId,
                                         @Valid @RequestBody AddStaffRequest body) {
         return staffManagementService.addStaff(RequestContext.requireAuthenticated(request), salonId, body);
+    }
+
+    @PostMapping("/salons/{salonId}/staff/create")
+    public StaffMemberResponse createStaff(HttpServletRequest request,
+                                           @PathVariable Long salonId,
+                                           @Valid @RequestBody CreateStaffRequest body) {
+        return staffManagementService.createStaff(RequestContext.requireAuthenticated(request), salonId, body);
     }
 
     @GetMapping("/salons/{salonId}/staff")

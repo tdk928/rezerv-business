@@ -22,6 +22,7 @@ import bg.rezerv.business.repository.TimeOffRequestRepository;
 import bg.rezerv.business.repository.WorkingHoursRepository;
 import bg.rezerv.business.web.RequestContext;
 import bg.rezerv.business.web.dto.AddStaffRequest;
+import bg.rezerv.business.web.dto.CreateStaffRequest;
 import bg.rezerv.business.web.dto.CreateSalonClosureRequest;
 import bg.rezerv.business.web.dto.CreateTimeOffRequest;
 import bg.rezerv.business.web.dto.ReplaceSalonWorkingHoursRequest;
@@ -87,6 +88,36 @@ public class StaffManagementService {
                     "Този потребител вече е служител в обекта");
         }
         casClient.assignStaff(user.id(), salon.getCompanyId());
+
+        String displayName = request.displayName() != null && !request.displayName().isBlank()
+                ? request.displayName().strip()
+                : (user.firstName() + " " + user.lastName()).strip();
+
+        StaffMember staff = staffMemberRepository.save(StaffMember.builder()
+                .salonId(salonId)
+                .userId(user.id())
+                .displayName(displayName)
+                .title(request.title() != null ? request.title().strip() : null)
+                .active(true)
+                .build());
+        return toResponse(staff);
+    }
+
+    @Transactional
+    public StaffMemberResponse createStaff(RequestContext ctx, Long salonId, CreateStaffRequest request) {
+        Salon salon = requireOwnedSalon(ctx, salonId);
+        CasClient.UserSummary user = casClient.createStaffUser(
+                request.email().strip().toLowerCase(),
+                request.password(),
+                request.firstName().strip(),
+                request.lastName().strip(),
+                request.phone().strip(),
+                salon.getCompanyId());
+
+        if (staffMemberRepository.existsBySalonIdAndUserId(salonId, user.id())) {
+            throw new ApiException(HttpStatus.CONFLICT, "STAFF_ALREADY_EXISTS",
+                    "Този потребител вече е служител в обекта");
+        }
 
         String displayName = request.displayName() != null && !request.displayName().isBlank()
                 ? request.displayName().strip()
