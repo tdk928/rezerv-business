@@ -59,9 +59,15 @@ class CompanyOnboardingIntegrationTest {
 
         var salon = onboardingService.createSalon(ctx, company.id(), new CreateSalonRequest(
                 "Моят салон", "Описание", sofiaId, "ул. Тест 1", 42.69, 23.32,
-                "salon@example.bg", "+359888888888"));
+                "salon@example.bg", "+359888888888",
+                java.util.List.of(
+                        new bg.rezerv.business.web.dto.WorkingHoursDayRequest(
+                                1, java.time.LocalTime.of(9, 0), java.time.LocalTime.of(18, 0)),
+                        new bg.rezerv.business.web.dto.WorkingHoursDayRequest(
+                                2, java.time.LocalTime.of(9, 0), java.time.LocalTime.of(18, 0)))));
         assertThat(salon.companyId()).isEqualTo(company.id());
         assertThat(salon.status()).isEqualTo(bg.rezerv.business.domain.SalonStatus.ACTIVE);
+        assertThat(salon.workingHours()).hasSize(2);
 
         Long categoryId = serviceCategoryRepository.findAllByOrderByNameAsc().getFirst().getId();
         var service = onboardingService.addService(ctx, salon.id(), new CreateSalonServiceRequest(
