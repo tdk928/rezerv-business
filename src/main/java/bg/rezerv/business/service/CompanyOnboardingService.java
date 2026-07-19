@@ -7,12 +7,14 @@ import bg.rezerv.business.domain.Salon;
 import bg.rezerv.business.domain.SalonPhoto;
 import bg.rezerv.business.domain.SalonServiceItem;
 import bg.rezerv.business.domain.SalonStatus;
+import bg.rezerv.business.domain.WorkingHours;
 import bg.rezerv.business.repository.CityRepository;
 import bg.rezerv.business.repository.CompanyRepository;
 import bg.rezerv.business.repository.SalonPhotoRepository;
 import bg.rezerv.business.repository.SalonRepository;
 import bg.rezerv.business.repository.SalonServiceItemRepository;
 import bg.rezerv.business.repository.ServiceCategoryRepository;
+import bg.rezerv.business.repository.WorkingHoursRepository;
 import bg.rezerv.business.web.RequestContext;
 import bg.rezerv.business.web.dto.AdminCompanyResponse;
 import bg.rezerv.business.web.dto.CompanyResponse;
@@ -21,9 +23,12 @@ import bg.rezerv.business.web.dto.CreateCompanyRequest;
 import bg.rezerv.business.web.dto.CreateSalonPhotoRequest;
 import bg.rezerv.business.web.dto.CreateSalonRequest;
 import bg.rezerv.business.web.dto.CreateSalonServiceRequest;
+import bg.rezerv.business.web.dto.ReplaceSalonWorkingHoursRequest;
 import bg.rezerv.business.web.dto.SalonPhotoResponse;
 import bg.rezerv.business.web.dto.SalonResponse;
 import bg.rezerv.business.web.dto.SalonServiceResponse;
+import bg.rezerv.business.web.dto.WorkingHoursDayRequest;
+import bg.rezerv.business.web.dto.WorkingHoursResponse;
 import bg.rezerv.business.web.error.ApiException;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,6 +50,7 @@ public class CompanyOnboardingService {
     private final SalonPhotoRepository salonPhotoRepository;
     private final CityRepository cityRepository;
     private final ServiceCategoryRepository serviceCategoryRepository;
+    private final WorkingHoursRepository workingHoursRepository;
     private final EikValidator eikValidator;
     private final CasClient casClient;
 
@@ -54,6 +60,7 @@ public class CompanyOnboardingService {
                                     SalonPhotoRepository salonPhotoRepository,
                                     CityRepository cityRepository,
                                     ServiceCategoryRepository serviceCategoryRepository,
+                                    WorkingHoursRepository workingHoursRepository,
                                     EikValidator eikValidator,
                                     CasClient casClient) {
         this.companyRepository = companyRepository;
@@ -62,6 +69,7 @@ public class CompanyOnboardingService {
         this.salonPhotoRepository = salonPhotoRepository;
         this.cityRepository = cityRepository;
         this.serviceCategoryRepository = serviceCategoryRepository;
+        this.workingHoursRepository = workingHoursRepository;
         this.eikValidator = eikValidator;
         this.casClient = casClient;
     }
@@ -106,9 +114,13 @@ public class CompanyOnboardingService {
                 ? Map.of()
                 : salonServiceItemRepository.findBySalonIdInAndActiveTrueOrderByNameAsc(salonIds).stream()
                         .collect(Collectors.groupingBy(SalonServiceItem::getSalonId, LinkedHashMap::new, Collectors.toList()));
+        Map<Long, List<WorkingHours>> hoursBySalon = salonIds.isEmpty()
+                ? Map.of()
+                : workingHoursRepository.findBySalonIdInAndStaffIdIsNullOrderBySalonIdAscDayOfWeekAsc(salonIds).stream()
+                        .collect(Collectors.groupingBy(WorkingHours::getSalonId, LinkedHashMap::new, Collectors.toList()));
         return companies.stream()
                 .map(c -> CompanyWithSalonsResponse.from(
-                        c, salonsByCompany.getOrDefault(c.getId(), List.of()), servicesBySalon))
+                        c, salonsByCompany.getOrDefault(c.getId(), List.of()), servicesBySalon, hoursBySalon))
                 .toList();
     }
 
@@ -183,6 +195,7 @@ public class CompanyOnboardingService {
             throw new ApiException(HttpStatus.CONFLICT, "COMPANY_NOT_APPROVED",
                     "Обект може да се добави само към одобрена фирма");
         }
+        WorkingHoursValidator.validateSalonDays(request.workingHours());
         var city = cityRepository.findById(request.cityId())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "CITY_NOT_FOUND", "Градът не е намерен"));
 
@@ -200,7 +213,34 @@ public class CompanyOnboardingService {
                 .phone(request.phone().strip())
                 .status(status)
                 .build();
-        return SalonResponse.from(salonRepository.save(salon));
+        salon = salonRepository.save(salon);
+        List<WorkingHours> hours = persistSalonWorkingHours(salon.getId(), request.workingHours());
+        return SalonResponse.from(salon, List.of(), hours);
+    }
+
+    @Transactional
+    public List<WorkingHoursResponse> replaceSalonWorkingHours(RequestContext ctx,
+                                                               Long salonId,
+                                                               ReplaceSalonWorkingHoursRequest request) {
+        requireOwnedSalon(ctx, salonId);
+        WorkingHoursValidator.validateSalonDays(request.workingHours());
+        workingHoursRepository.deleteBySalonIdAndStaffIdIsNull(salonId);
+        return persistSalonWorkingHours(salonId, request.workingHours()).stream()
+                .map(WorkingHoursResponse::from)
+                .toList();
+    }
+
+    private List<WorkingHours> persistSalonWorkingHours(Long salonId, List<WorkingHoursDayRequest> days) {
+        List<WorkingHours> entities = days.stream()
+                .map(day -> WorkingHours.builder()
+                        .salonId(salonId)
+                        .staffId(null)
+                        .dayOfWeek(day.dayOfWeek().shortValue())
+                        .startTime(day.openTime())
+                        .endTime(day.closeTime())
+                        .build())
+                .toList();
+        return workingHoursRepository.saveAll(entities);
     }
 
     @Transactional

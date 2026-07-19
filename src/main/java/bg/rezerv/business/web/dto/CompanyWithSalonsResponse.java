@@ -4,6 +4,7 @@ import bg.rezerv.business.domain.Company;
 import bg.rezerv.business.domain.CompanyStatus;
 import bg.rezerv.business.domain.Salon;
 import bg.rezerv.business.domain.SalonServiceItem;
+import bg.rezerv.business.domain.WorkingHours;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +23,10 @@ public record CompanyWithSalonsResponse(
         List<SalonResponse> salons) {
 
     public static CompanyWithSalonsResponse from(
-            Company company, List<Salon> salons, Map<Long, List<SalonServiceItem>> servicesBySalon) {
+            Company company,
+            List<Salon> salons,
+            Map<Long, List<SalonServiceItem>> servicesBySalon,
+            Map<Long, List<WorkingHours>> hoursBySalon) {
         return new CompanyWithSalonsResponse(
                 company.getId(),
                 company.getEik(),
@@ -34,7 +38,10 @@ public record CompanyWithSalonsResponse(
                 company.getStatus(),
                 company.getCreatedAt(),
                 salons.stream()
-                        .map(s -> SalonResponse.from(s, servicesBySalon.getOrDefault(s.getId(), List.of())))
+                        .map(s -> SalonResponse.from(
+                                s,
+                                servicesBySalon.getOrDefault(s.getId(), List.of()),
+                                hoursBySalon.getOrDefault(s.getId(), List.of())))
                         .toList());
     }
 }

@@ -5,6 +5,7 @@
 
 | № | Branch | Дата | Обобщение |
 |---|--------|------|-----------|
+| 10 | feature/salon-working-hours | 2026-07-19 | Задължителни `workingHours` при create salon (по ден, open/close); `PUT .../working-hours`; V8 wipe+reseed; mine връща часовете. |
 | 9 | feature/mine-salons-with-services | 2026-07-19 | `GET /companies/mine` — всеки салон включва `services[]` (категория, име, duration, price). |
 | 8 | feature/salon-requires-company-approved | 2026-07-19 | `POST .../salons` само ако фирмата е APPROVED; иначе 409 COMPANY_NOT_APPROVED. |
 | 7 | feature/owner-admin-company-lists | 2026-07-17 | `GET /companies/mine` връща фирми+обекти (`salons`). `GET /admin/companies` (PLATFORM_ADMIN) — всички фирми + owner от CAS lookup. |

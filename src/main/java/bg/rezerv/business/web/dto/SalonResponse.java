@@ -3,6 +3,7 @@ package bg.rezerv.business.web.dto;
 import bg.rezerv.business.domain.Salon;
 import bg.rezerv.business.domain.SalonServiceItem;
 import bg.rezerv.business.domain.SalonStatus;
+import bg.rezerv.business.domain.WorkingHours;
 import java.util.List;
 
 public record SalonResponse(
@@ -17,13 +18,14 @@ public record SalonResponse(
         String email,
         String phone,
         SalonStatus status,
-        List<SalonServiceResponse> services) {
+        List<SalonServiceResponse> services,
+        List<WorkingHoursResponse> workingHours) {
 
     public static SalonResponse from(Salon salon) {
-        return from(salon, List.of());
+        return from(salon, List.of(), List.of());
     }
 
-    public static SalonResponse from(Salon salon, List<SalonServiceItem> services) {
+    public static SalonResponse from(Salon salon, List<SalonServiceItem> services, List<WorkingHours> workingHours) {
         return new SalonResponse(
                 salon.getId(),
                 salon.getCompanyId(),
@@ -36,6 +38,7 @@ public record SalonResponse(
                 salon.getEmail(),
                 salon.getPhone(),
                 salon.getStatus(),
-                services.stream().map(SalonServiceResponse::from).toList());
+                services.stream().map(SalonServiceResponse::from).toList(),
+                workingHours.stream().map(WorkingHoursResponse::from).toList());
     }
 }

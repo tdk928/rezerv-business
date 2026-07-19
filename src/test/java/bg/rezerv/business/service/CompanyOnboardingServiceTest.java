@@ -21,10 +21,13 @@ import bg.rezerv.business.repository.SalonServiceItemRepository;
 import bg.rezerv.business.repository.ServiceCategoryRepository;
 import bg.rezerv.business.web.RequestContext;
 import bg.rezerv.business.web.dto.CreateCompanyRequest;
+import bg.rezerv.business.repository.WorkingHoursRepository;
 import bg.rezerv.business.web.dto.CreateSalonRequest;
 import bg.rezerv.business.web.dto.CreateSalonServiceRequest;
+import bg.rezerv.business.web.dto.WorkingHoursDayRequest;
 import bg.rezerv.business.web.error.ApiException;
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,8 @@ class CompanyOnboardingServiceTest {
     @Mock
     private ServiceCategoryRepository serviceCategoryRepository;
     @Mock
+    private WorkingHoursRepository workingHoursRepository;
+    @Mock
     private EikValidator eikValidator;
 
     @Mock
@@ -58,6 +63,16 @@ class CompanyOnboardingServiceTest {
     private CompanyOnboardingService service;
 
     private final RequestContext owner = new RequestContext(42L, List.of("CLIENT"), null);
+
+    private static List<WorkingHoursDayRequest> monToFri() {
+        return List.of(
+                new WorkingHoursDayRequest(1, LocalTime.of(9, 0), LocalTime.of(18, 0)),
+                new WorkingHoursDayRequest(2, LocalTime.of(9, 0), LocalTime.of(18, 0)),
+                new WorkingHoursDayRequest(3, LocalTime.of(9, 0), LocalTime.of(18, 0)),
+                new WorkingHoursDayRequest(4, LocalTime.of(9, 0), LocalTime.of(18, 0)),
+                new WorkingHoursDayRequest(5, LocalTime.of(9, 0), LocalTime.of(18, 0)));
+    }
+
 
     @Test
     void registerCompanyPersistsPendingApprovalCompany() {
@@ -100,7 +115,7 @@ class CompanyOnboardingServiceTest {
         when(companyRepository.findByIdAndOwnerUserId(1L, 42L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.createSalon(owner, 1L, new CreateSalonRequest(
-                "Salon", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888")))
+                "Salon", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888", monToFri())))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("права");
     }
@@ -145,6 +160,8 @@ class CompanyOnboardingServiceTest {
         when(salonRepository.findByCompanyIdInOrderByNameAsc(List.of(10L))).thenReturn(List.of(salon));
         when(salonServiceItemRepository.findBySalonIdInAndActiveTrueOrderByNameAsc(List.of(3L)))
                 .thenReturn(List.of());
+        when(workingHoursRepository.findBySalonIdInAndStaffIdIsNullOrderBySalonIdAscDayOfWeekAsc(List.of(3L)))
+                .thenReturn(List.of());
 
         var result = service.listMyCompanies(owner);
 
@@ -171,7 +188,7 @@ class CompanyOnboardingServiceTest {
         when(companyRepository.findByIdAndOwnerUserId(1L, 42L)).thenReturn(Optional.of(company));
 
         assertThatThrownBy(() -> service.createSalon(owner, 1L, new CreateSalonRequest(
-                "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888")))
+                "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888", monToFri())))
                 .isInstanceOf(ApiException.class)
                 .hasMessageContaining("одобрена");
     }
@@ -219,9 +236,10 @@ class CompanyOnboardingServiceTest {
             s.setId(9L);
             return s;
         });
+        when(workingHoursRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
         var response = service.createSalon(owner, 1L, new CreateSalonRequest(
-                "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888"));
+                "Обект", null, 1L, "addr", null, null, "salon@example.bg", "+359888888888", monToFri()));
 
         assertThat(response.status()).isEqualTo(bg.rezerv.business.domain.SalonStatus.ACTIVE);
     }
