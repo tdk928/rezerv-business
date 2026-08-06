@@ -181,13 +181,17 @@ public class StaffManagementService {
             }
         }
         staffServiceLinkRepository.deleteByStaffId(staffId);
+        List<StaffServiceLink> links = List.of();
         if (!serviceIds.isEmpty()) {
-            staffServiceLinkRepository.saveAll(serviceIds.stream()
+            links = serviceIds.stream()
                     .distinct()
                     .map(id -> StaffServiceLink.builder().staffId(staffId).serviceId(id).build())
-                    .toList());
+                    .toList();
+            staffServiceLinkRepository.saveAll(links);
         }
-        return toResponse(staff);
+        List<WorkingHours> hours =
+                workingHoursRepository.findBySalonIdAndStaffIdOrderByDayOfWeekAsc(staff.getSalonId(), staff.getId());
+        return StaffMemberResponse.from(staff, links.stream().map(StaffServiceLink::getServiceId).toList(), hours);
     }
 
     @Transactional
