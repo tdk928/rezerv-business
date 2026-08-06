@@ -5,6 +5,7 @@
 
 | № | Branch | Дата | Обобщение |
 |---|--------|------|-----------|
+| 14 | feature/staff-services-assign-hardening | 2026-08-06 | Harden `PUT /business/staff/{id}/services`: flush delete преди insert; unit тестове (успех, чужда услуга, clear, ownership). |
 | 13 | feature/create-staff-onboarding | 2026-07-19 | Owner създава нов STAFF: `POST /business/salons/{id}/staff/create` (CAS create-staff + staff_members). Link-by-email остава. |
 | 12 | feature/internal-availability | 2026-07-19 | Internal за booking: `GET .../availability-context` + `.../actors/{userId}` (owner/staff). |
 | 11 | feature/staff-schedules-time-off | 2026-07-19 | Staff (CAS STAFF), график ⊆ салон, staff↔services, salon closures, time-off (owner + staff заявки approve/reject). V9. |

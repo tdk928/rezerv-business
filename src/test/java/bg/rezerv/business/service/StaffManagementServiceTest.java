@@ -11,7 +11,9 @@ import bg.rezerv.business.client.CasClient;
 import bg.rezerv.business.domain.City;
 import bg.rezerv.business.domain.Company;
 import bg.rezerv.business.domain.Salon;
+import bg.rezerv.business.domain.SalonServiceItem;
 import bg.rezerv.business.domain.StaffMember;
+import bg.rezerv.business.domain.StaffServiceLink;
 import bg.rezerv.business.domain.TimeOffRequest;
 import bg.rezerv.business.domain.TimeOffRequestStatus;
 import bg.rezerv.business.domain.TimeOffSource;
@@ -28,6 +30,7 @@ import bg.rezerv.business.web.RequestContext;
 import bg.rezerv.business.web.dto.AddStaffRequest;
 import bg.rezerv.business.web.dto.CreateStaffRequest;
 import bg.rezerv.business.web.dto.CreateTimeOffRequest;
+import bg.rezerv.business.web.dto.ReplaceStaffServicesRequest;
 import bg.rezerv.business.web.error.ApiException;
 import java.time.Instant;
 import java.util.List;
@@ -148,5 +151,82 @@ class StaffManagementServiceTest {
         assertThat(response.status()).isEqualTo(TimeOffRequestStatus.APPROVED);
         verify(timeOffRepository).save(org.mockito.ArgumentMatchers.argThat(t ->
                 t.getSource() == TimeOffSource.REQUEST && t.getStaffId().equals(77L)));
+    }
+
+    @Test
+    void replaceStaffServicesPersistsLinksForSalonServices() {
+        StaffMember staff = StaffMember.builder().id(1L).salonId(7L).userId(11L).displayName("ivan").active(true).build();
+        Salon salon = Salon.builder().id(7L).companyId(3L).city(sofia).name("obekt").address("a").build();
+        when(staffMemberRepository.findById(1L)).thenReturn(Optional.of(staff));
+        when(salonRepository.findWithCityById(7L)).thenReturn(Optional.of(salon));
+        when(companyRepository.findByIdAndOwnerUserId(3L, 42L))
+                .thenReturn(Optional.of(Company.builder().id(3L).ownerUserId(42L).build()));
+        when(salonServiceItemRepository.findBySalonIdInAndActiveTrueOrderByNameAsc(List.of(7L)))
+                .thenReturn(List.of(
+                        SalonServiceItem.builder().id(15L).salonId(7L).name("kosa").active(true).build(),
+                        SalonServiceItem.builder().id(16L).salonId(7L).name("brada").active(true).build()));
+        when(staffServiceLinkRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(workingHoursRepository.findBySalonIdAndStaffIdOrderByDayOfWeekAsc(7L, 1L)).thenReturn(List.of());
+
+        var response = service.replaceStaffServices(owner, 1L, new ReplaceStaffServicesRequest(List.of(16L, 15L, 16L)));
+
+        assertThat(response.serviceIds()).containsExactly(16L, 15L);
+        verify(staffServiceLinkRepository).deleteByStaffId(1L);
+        verify(staffServiceLinkRepository).saveAll(org.mockito.ArgumentMatchers.argThat(iterable -> {
+            List<StaffServiceLink> saved = new java.util.ArrayList<>();
+            iterable.forEach(saved::add);
+            return saved.size() == 2
+                    && saved.stream().anyMatch(l -> l.getServiceId().equals(16L))
+                    && saved.stream().anyMatch(l -> l.getServiceId().equals(15L));
+        }));
+    }
+
+    @Test
+    void replaceStaffServicesRejectsServiceFromAnotherSalon() {
+        StaffMember staff = StaffMember.builder().id(1L).salonId(7L).userId(11L).displayName("ivan").active(true).build();
+        Salon salon = Salon.builder().id(7L).companyId(3L).city(sofia).name("obekt").address("a").build();
+        when(staffMemberRepository.findById(1L)).thenReturn(Optional.of(staff));
+        when(salonRepository.findWithCityById(7L)).thenReturn(Optional.of(salon));
+        when(companyRepository.findByIdAndOwnerUserId(3L, 42L))
+                .thenReturn(Optional.of(Company.builder().id(3L).ownerUserId(42L).build()));
+        when(salonServiceItemRepository.findBySalonIdInAndActiveTrueOrderByNameAsc(List.of(7L)))
+                .thenReturn(List.of(SalonServiceItem.builder().id(16L).salonId(7L).name("brada").active(true).build()));
+
+        assertThatThrownBy(() -> service.replaceStaffServices(owner, 1L, new ReplaceStaffServicesRequest(List.of(99L))))
+                .isInstanceOf(ApiException.class)
+                .extracting(ex -> ((ApiException) ex).code())
+                .isEqualTo("SERVICE_NOT_IN_SALON");
+        verify(staffServiceLinkRepository, org.mockito.Mockito.never()).deleteByStaffId(any());
+    }
+
+    @Test
+    void replaceStaffServicesEmptyListClearsAllLinks() {
+        StaffMember staff = StaffMember.builder().id(1L).salonId(7L).userId(11L).displayName("ivan").active(true).build();
+        Salon salon = Salon.builder().id(7L).companyId(3L).city(sofia).name("obekt").address("a").build();
+        when(staffMemberRepository.findById(1L)).thenReturn(Optional.of(staff));
+        when(salonRepository.findWithCityById(7L)).thenReturn(Optional.of(salon));
+        when(companyRepository.findByIdAndOwnerUserId(3L, 42L))
+                .thenReturn(Optional.of(Company.builder().id(3L).ownerUserId(42L).build()));
+        when(workingHoursRepository.findBySalonIdAndStaffIdOrderByDayOfWeekAsc(7L, 1L)).thenReturn(List.of());
+
+        var response = service.replaceStaffServices(owner, 1L, new ReplaceStaffServicesRequest(List.of()));
+
+        assertThat(response.serviceIds()).isEmpty();
+        verify(staffServiceLinkRepository).deleteByStaffId(1L);
+        verify(staffServiceLinkRepository, org.mockito.Mockito.never()).saveAll(any());
+    }
+
+    @Test
+    void replaceStaffServicesRequiresCompanyOwner() {
+        StaffMember staff = StaffMember.builder().id(1L).salonId(7L).userId(11L).displayName("ivan").active(true).build();
+        Salon salon = Salon.builder().id(7L).companyId(3L).city(sofia).name("obekt").address("a").build();
+        when(staffMemberRepository.findById(1L)).thenReturn(Optional.of(staff));
+        when(salonRepository.findWithCityById(7L)).thenReturn(Optional.of(salon));
+        when(companyRepository.findByIdAndOwnerUserId(3L, 42L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.replaceStaffServices(owner, 1L, new ReplaceStaffServicesRequest(List.of(16L))))
+                .isInstanceOf(ApiException.class)
+                .extracting(ex -> ((ApiException) ex).code())
+                .isEqualTo("NOT_COMPANY_OWNER");
     }
 }
